@@ -19,12 +19,13 @@ from teaser.logic.buildingobjects.thermalzone import ThermalZone
 class SingleFamilyDwelling(Residential):
     """Archetype Residential Building according
 
-    Subclass from Residential archetpye class to represent
+    Subclass from Residential archetype class to represent
     SingleFamilyDwelling according to IWU :cite:`KurzverfahrenIWU`.
 
-    The SingleFamilyDwelling module contains a singlezone building. It has 4
-    outer walls, 4 windows, a flat roof and a ground floor. Depending on (
-    typical length and width) the interior wall areas are assigned. It makes
+    The SingleFamilyDwelling module contains a single zone building. It has 4
+    outer walls, 4 windows, a flat roof and a ground floor. Interior wall
+    areas are assigned related to typical width and depth of zones according to
+    :cite:`SwissSocietyofEngineersandArchitects.March2006`. It makes
     number_of_floors and height_of_floors mandatory parameters.
     Additional information can be passed
     to the archetype (e.g. floor layout and number of neighbors).
@@ -161,7 +162,6 @@ class SingleFamilyDwelling(Residential):
             cellar=None,
             dormer=None,
             construction_type=None):
-
         """Constructor of SingleFamilyDwelling
         """
 
@@ -291,10 +291,14 @@ class SingleFamilyDwelling(Residential):
             self.central_ahu.profile_temperature = (7 * [293.15] +
                                                     12 * [295.15] +
                                                     6 * [293.15])
+            #  according to :cite:`DeutschesInstitutfurNormung.2016`
             self.central_ahu.profile_min_relative_humidity = (25 * [0.45])
-            self.central_ahu.profile_max_relative_humidity = (25 * [0.55])
+            #  according to :cite:`DeutschesInstitutfurNormung.2016b`  and
+            # :cite:`DeutschesInstitutfurNormung.2016`
+            self.central_ahu.profile_max_relative_humidity = (25 * [0.65])
             self.central_ahu.profile_v_flow = (
-                7 * [0.0] + 12 * [1.0] + 6 * [0.0])
+                7 * [0.0] + 12 * [1.0] + 6 * [0.0])  # according to user  #
+            # profile in :cite:`DeutschesInstitutfurNormung.2016`
 
     def generate_archetype(self):
         """Generates a SingleFamilyDwelling building.
@@ -303,6 +307,7 @@ class SingleFamilyDwelling(Residential):
         single family dwellings according to TEASER requirements
         """
         # help area for the correct building area setting while using typeBldgs
+        self.thermal_zones = None
         type_bldg_area = self.net_leased_area
         self.net_leased_area = 0.0
 
@@ -350,18 +355,21 @@ class SingleFamilyDwelling(Residential):
                                          data_class=self.parent.data)
 
             zone.use_conditions = use_cond
+            zone.use_conditions.with_ahu = False
+            zone.use_conditions.persons *= zone.area * 0.01
+            zone.use_conditions.machines *= zone.area * 0.01
 
         for key, value in self.outer_wall_names.items():
             # North and South
 
             if value[1] == 0 or value[1] == 180.0:
                 self.outer_area[value[1]] = self._est_outer_wall_area / \
-                                            self.nr_of_orientation
+                    self.nr_of_orientation
             # East and West
             elif value[1] == 90 or value[1] == 270:
 
                 self.outer_area[value[1]] = self._est_outer_wall_area / \
-                                            self.nr_of_orientation
+                    self.nr_of_orientation
 
             for zone in self.thermal_zones:
                 # create wall and set building elements
@@ -379,12 +387,12 @@ class SingleFamilyDwelling(Residential):
             if value[1] == 0 or value[1] == 180:
 
                 self.window_area[value[1]] = self._est_win_area / \
-                                             self.nr_of_orientation
+                    self.nr_of_orientation
 
             elif value[1] == 90 or value[1] == 270:
 
                 self.window_area[value[1]] = self._est_win_area / \
-                                             self.nr_of_orientation
+                    self.nr_of_orientation
 
             '''
             There is no real classification for windows, so this is a bit hard
